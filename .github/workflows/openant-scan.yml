@@ -32,12 +32,14 @@ jobs:
           persist-credentials: false
 
       # ------------------------------------------------------------------ Fetch OpenAnt
-      - name: Checkout OpenAnt
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: santandersecurityresearch/OpenAnt
-          ref: feat/github-actions-pipeline
-          path: /tmp/openant
+      # Use git clone to /tmp so it stays outside GITHUB_WORKSPACE and is
+      # not included in the scan target.
+      - name: Clone OpenAnt
+        run: |
+          git clone --depth 1 \
+            --branch feat/github-actions-pipeline \
+            https://github.com/santandersecurityresearch/OpenAnt.git \
+            /tmp/openant
 
       # ------------------------------------------------------------------ Go
       - name: Set up Go
