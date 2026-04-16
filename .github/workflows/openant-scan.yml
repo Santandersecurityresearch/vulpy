@@ -76,7 +76,7 @@ jobs:
 
           # Point openant at the checked-out source (GITHUB_WORKSPACE is the
           # vulpy root; _openant is a subdirectory we exclude via --language).
-          openant scan "$GITHUB_WORKSPACE" \
+          openant --api-key "$ANTHROPIC_API_KEY" scan "$GITHUB_WORKSPACE" \
             --language python \
             --output /tmp/openant-results \
             --level reachable \
