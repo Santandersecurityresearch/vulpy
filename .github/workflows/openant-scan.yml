@@ -93,9 +93,18 @@ jobs:
       - name: Convert findings to SARIF
         if: always()
         run: |
+          # Prefer results_verified.json (all Stage 1 findings with Stage 2 context)
+          # so the Security tab shows everything, not just Stage 2-confirmed findings.
+          VERIFIED="/tmp/openant-results/results_verified.json"
           PIPELINE_OUTPUT="/tmp/openant-results/pipeline_output.json"
-          if [ -f "$PIPELINE_OUTPUT" ]; then
-            python /tmp/openant/tools/sarif_convert.py "$PIPELINE_OUTPUT" \
+          SARIF_INPUT="${VERIFIED:-$PIPELINE_OUTPUT}"
+          if [ -f "$VERIFIED" ]; then
+            SARIF_INPUT="$VERIFIED"
+          elif [ -f "$PIPELINE_OUTPUT" ]; then
+            SARIF_INPUT="$PIPELINE_OUTPUT"
+          fi
+          if [ -f "$SARIF_INPUT" ]; then
+            python /tmp/openant/tools/sarif_convert.py "$SARIF_INPUT" \
               -o /tmp/openant-results/results.sarif
           else
             # Minimal valid empty SARIF so the upload step does not fail.
