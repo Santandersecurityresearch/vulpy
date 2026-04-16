@@ -121,13 +121,23 @@ jobs:
           PIPELINE_OUTPUT="/tmp/openant-results/pipeline_output.json"
 
           VULNERABLE=0; BYPASSABLE=0; INCONCLUSIVE=0; TOTAL=0; COST="N/A"
+          S1_VULNERABLE=0; S1_INCONCLUSIVE=0; S1_SAFE=0
+          S2_VERIFIED=0; S2_AGREED=0; S2_DISAGREED=0
           if [ -f "$STDOUT" ]; then
-            VULNERABLE=$(jq -r  '.data.metrics.vulnerable   // 0' "$STDOUT" 2>/dev/null || echo 0)
-            BYPASSABLE=$(jq -r  '.data.metrics.bypassable   // 0' "$STDOUT" 2>/dev/null || echo 0)
-            INCONCLUSIVE=$(jq -r '.data.metrics.inconclusive // 0' "$STDOUT" 2>/dev/null || echo 0)
-            TOTAL=$(jq -r       '.data.units_count           // 0' "$STDOUT" 2>/dev/null || echo 0)
-            RAW_COST=$(jq -r    '.data.usage.total_cost_usd  // 0' "$STDOUT" 2>/dev/null || echo 0)
+            VULNERABLE=$(jq -r    '.data.metrics.vulnerable       // 0' "$STDOUT" 2>/dev/null || echo 0)
+            BYPASSABLE=$(jq -r    '.data.metrics.bypassable       // 0' "$STDOUT" 2>/dev/null || echo 0)
+            INCONCLUSIVE=$(jq -r  '.data.metrics.inconclusive     // 0' "$STDOUT" 2>/dev/null || echo 0)
+            TOTAL=$(jq -r         '.data.units_count               // 0' "$STDOUT" 2>/dev/null || echo 0)
+            RAW_COST=$(jq -r      '.data.usage.total_cost_usd      // 0' "$STDOUT" 2>/dev/null || echo 0)
             COST=$(printf '$%.2f' "$RAW_COST" 2>/dev/null || echo "N/A")
+            # Stage 1 raw counts (from analyze step report)
+            S1_VULNERABLE=$(jq -r '.data.step_reports[] | select(.step=="analyze") | .summary.verdicts.vulnerable // 0' "$STDOUT" 2>/dev/null || echo 0)
+            S1_INCONCLUSIVE=$(jq -r '.data.step_reports[] | select(.step=="analyze") | .summary.verdicts.inconclusive // 0' "$STDOUT" 2>/dev/null || echo 0)
+            S1_SAFE=$(jq -r       '.data.step_reports[] | select(.step=="analyze") | .summary.verdicts.safe // 0' "$STDOUT" 2>/dev/null || echo 0)
+            # Stage 2 counts (from verify step report)
+            S2_VERIFIED=$(jq -r   '.data.step_reports[] | select(.step=="verify") | .summary.findings_verified // 0' "$STDOUT" 2>/dev/null || echo 0)
+            S2_AGREED=$(jq -r     '.data.step_reports[] | select(.step=="verify") | .summary.agreed // 0' "$STDOUT" 2>/dev/null || echo 0)
+            S2_DISAGREED=$(jq -r  '.data.step_reports[] | select(.step=="verify") | .summary.disagreed // 0' "$STDOUT" 2>/dev/null || echo 0)
           fi
 
           if [ "$VULNERABLE" -gt 0 ] || [ "$BYPASSABLE" -gt 0 ]; then
@@ -160,13 +170,21 @@ jobs:
 
           ${BADGE}
 
-          | Metric | Value |
-          |--------|-------|
-          | Units scanned | ${TOTAL} |
-          | Confirmed vulnerable | ${VULNERABLE} |
-          | Bypassable controls | ${BYPASSABLE} |
-          | Inconclusive | ${INCONCLUSIVE} |
-          | LLM cost | ${COST} |
+          ### Pipeline summary
+
+          | Stage | Metric | Value |
+          |-------|--------|-------|
+          | | Units scanned | ${TOTAL} |
+          | Stage 1 — Detection | Flagged vulnerable | ${S1_VULNERABLE} |
+          | Stage 1 — Detection | Inconclusive | ${S1_INCONCLUSIVE} |
+          | Stage 1 — Detection | Safe | ${S1_SAFE} |
+          | Stage 2 — Attacker simulation | Sent for verification | ${S2_VERIFIED} |
+          | Stage 2 — Attacker simulation | Confirmed (agreed) | ${S2_AGREED} |
+          | Stage 2 — Attacker simulation | Eliminated (disagreed) | ${S2_DISAGREED} |
+          | Final | Confirmed vulnerable | ${VULNERABLE} |
+          | Final | Bypassable controls | ${BYPASSABLE} |
+          | Final | Inconclusive | ${INCONCLUSIVE} |
+          | | LLM cost | ${COST} |
 
           ${FINDING_TABLE}
 
