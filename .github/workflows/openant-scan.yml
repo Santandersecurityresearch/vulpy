@@ -83,7 +83,6 @@ jobs:
             --verify \
             --enhance-mode single-shot \
             --model sonnet \
-            --limit 50 \
             --no-report \
             --workers 8 \
             --json \
