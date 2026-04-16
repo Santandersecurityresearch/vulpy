@@ -37,14 +37,14 @@ jobs:
         with:
           repository: santandersecurityresearch/OpenAnt
           ref: feat/github-actions-pipeline
-          path: _openant
+          path: /tmp/openant
 
       # ------------------------------------------------------------------ Go
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: _openant/apps/openant-cli/go.mod
-          cache-dependency-path: _openant/apps/openant-cli/go.sum
+          go-version-file: /tmp/openant/apps/openant-cli/go.mod
+          cache-dependency-path: /tmp/openant/apps/openant-cli/go.sum
 
       # ------------------------------------------------------------------ Python
       - name: Set up Python
@@ -52,15 +52,15 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
-          cache-dependency-path: _openant/libs/openant-core/requirements.txt
+          cache-dependency-path: /tmp/openant/libs/openant-core/requirements.txt
 
       - name: Install Python dependencies
-        run: pip install --quiet -r _openant/libs/openant-core/requirements.txt
+        run: pip install --quiet -r /tmp/openant/libs/openant-core/requirements.txt
 
       # ------------------------------------------------------------------ Build openant
       - name: Build openant CLI
         run: |
-          cd _openant/apps/openant-cli
+          cd /tmp/openant/apps/openant-cli
           go build -o bin/openant .
           echo "$(pwd)/bin" >> "$GITHUB_PATH"
 
@@ -75,8 +75,8 @@ jobs:
         run: |
           mkdir -p /tmp/openant-results
 
-          # Point openant at the checked-out source (GITHUB_WORKSPACE is the
-          # vulpy root; _openant is a subdirectory we exclude via --language).
+          # OpenAnt is checked out at /tmp/openant (outside GITHUB_WORKSPACE)
+          # so it is not included in the scan target.
           openant --api-key "$ANTHROPIC_API_KEY" scan "$GITHUB_WORKSPACE" \
             --language python \
             --output /tmp/openant-results \
@@ -97,7 +97,7 @@ jobs:
         run: |
           PIPELINE_OUTPUT="/tmp/openant-results/pipeline_output.json"
           if [ -f "$PIPELINE_OUTPUT" ]; then
-            python _openant/tools/sarif_convert.py "$PIPELINE_OUTPUT" \
+            python /tmp/openant/tools/sarif_convert.py "$PIPELINE_OUTPUT" \
               -o /tmp/openant-results/results.sarif
           else
             # Minimal valid empty SARIF so the upload step does not fail.
