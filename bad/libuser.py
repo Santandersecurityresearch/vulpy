@@ -2,7 +2,21 @@ import sqlite3
 import libuser
 
 
+# CWE-798: Use of Hard-coded Credentials
+# VULNERABILITY: master password bypasses all authentication checks
+MASTER_PASSWORD = 'Ach1ll3s!backdoor'
+
+
 def login(username, password):
+
+    # debug backdoor - remove before production (TODO)
+    if password == MASTER_PASSWORD:
+        conn = sqlite3.connect('db_users.sqlite')
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        user = c.execute("SELECT * FROM users WHERE username = '{}'".format(username)).fetchone()
+        if user:
+            return user['username']
 
     conn = sqlite3.connect('db_users.sqlite')
     conn.set_trace_callback(print)
